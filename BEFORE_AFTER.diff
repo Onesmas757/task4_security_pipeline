@@ -1,0 +1,33 @@
+--- /tmp/vulnerable_route.ts	2026-11-12 06:19:20.126703041 +0300
++++ app/api/users/[id]/route.ts	2026-11-12 05:30:57.281699281 +0300
+@@ -2,8 +2,8 @@
+ import { db, UserRow } from "@/lib/db";
+ import { verifySession } from "@/lib/auth";
+ 
+-// VULNERABLE: authenticates the request, but never checks whether the
+-// logged-in user is allowed to see the specific id in the URL.
++// FIXED: requires a valid session, then verifies that the session's
++// own userId matches the requested id before returning any data.
+ export async function GET(
+   req: NextRequest,
+   { params }: { params: Promise<{ id: string }> }
+@@ -16,11 +16,17 @@
+     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   }
+ 
+-  // BUG: fetches whatever id is in the URL, regardless of who is asking.
+   const { id } = await params;
++  const requestedId = Number(id);
++
++  // The core fix: a user may only fetch their own record.
++  if (session.userId !== requestedId) {
++    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
++  }
++
+   const user = db
+     .prepare("SELECT id, email, full_name, phone FROM users WHERE id = ?")
+-    .get(Number(id)) as UserRow | undefined;
++    .get(requestedId) as UserRow | undefined;
+ 
+   if (!user) {
+     return NextResponse.json({ error: "Not found" }, { status: 404 });
