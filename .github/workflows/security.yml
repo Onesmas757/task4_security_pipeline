@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  boot-check:
+  security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +18,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run unit tests (BOLA, rate limiting, masking)
+        run: npm test
 
       - name: Seed test database
         run: npx tsx lib/seed.ts
@@ -31,5 +34,10 @@ jobs:
       - name: Wait for server to be ready
         run: npx wait-on http://localhost:3000 --timeout 30000
 
-      - name: Smoke-test the public endpoint
-        run: curl -sf http://localhost:3000/api/public/verify/1
+      - name: Run live security header and masking checks
+        run: npm run test:e2e
+
+      - name: Scan for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
