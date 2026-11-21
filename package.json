@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test tests/bola.test.ts tests/rateLimit.test.ts"
+    "test": "tsx --test tests/bola.test.ts tests/rateLimit.test.ts tests/mask.test.ts",
+    "test:e2e": "tsx --test tests/headers.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
