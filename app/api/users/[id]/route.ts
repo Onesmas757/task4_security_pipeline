@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, UserRow } from "@/lib/db";
 import { verifySession } from "@/lib/auth";
 
-// FIXED: requires a valid session, then verifies that the session's
-// own userId matches the requested id before returning any data.
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authHeader = req.headers.get("authorization") || "";
-  const token = authHeader.replace("Bearer ", "");
+  const token = req.cookies.get("session")?.value ?? "";
   const session = verifySession(token);
 
   if (!session) {
@@ -19,7 +16,6 @@ export async function GET(
   const { id } = await params;
   const requestedId = Number(id);
 
-  // The core fix: a user may only fetch their own record.
   if (session.userId !== requestedId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

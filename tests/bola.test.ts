@@ -6,13 +6,13 @@ import { signSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
-function makeRequest(url: string, token: string) {
+function makeRequestWithCookie(url: string, token: string) {
   return new NextRequest(url, {
-    headers: { authorization: `Bearer ${token}` },
+    headers: { cookie: `session=${token}` },
   });
 }
 
-describe("GET /api/users/[id] — BOLA protection", () => {
+describe("GET /api/users/[id] — BOLA protection (cookie-based auth)", () => {
   let aliceId: number;
   let bobId: number;
   let aliceToken: string;
@@ -39,7 +39,7 @@ describe("GET /api/users/[id] — BOLA protection", () => {
   });
 
   test("allows a user to fetch their own profile", async () => {
-    const req = makeRequest(`http://localhost/api/users/${aliceId}`, aliceToken);
+    const req = makeRequestWithCookie(`http://localhost/api/users/${aliceId}`, aliceToken);
     const res = await GET(req, { params: Promise.resolve({ id: String(aliceId) }) });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -47,7 +47,7 @@ describe("GET /api/users/[id] — BOLA protection", () => {
   });
 
   test("blocks a user from fetching another user's profile (BOLA check)", async () => {
-    const req = makeRequest(`http://localhost/api/users/${bobId}`, aliceToken);
+    const req = makeRequestWithCookie(`http://localhost/api/users/${bobId}`, aliceToken);
     const res = await GET(req, { params: Promise.resolve({ id: String(bobId) }) });
     assert.equal(res.status, 403);
     const body = await res.json();
@@ -56,12 +56,12 @@ describe("GET /api/users/[id] — BOLA protection", () => {
   });
 
   test("blocks the reverse direction too", async () => {
-    const req = makeRequest(`http://localhost/api/users/${aliceId}`, bobToken);
+    const req = makeRequestWithCookie(`http://localhost/api/users/${aliceId}`, bobToken);
     const res = await GET(req, { params: Promise.resolve({ id: String(aliceId) }) });
     assert.equal(res.status, 403);
   });
 
-  test("rejects requests with no token at all", async () => {
+  test("rejects requests with no session cookie at all", async () => {
     const req = new NextRequest(`http://localhost/api/users/${aliceId}`);
     const res = await GET(req, { params: Promise.resolve({ id: String(aliceId) }) });
     assert.equal(res.status, 401);
